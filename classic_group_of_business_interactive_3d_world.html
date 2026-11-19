@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Classic Group Of Business — Interactive 3D World</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            plum: {
+              DEFAULT: '#3A0F34',
+              deep: '#260822',
+              light: '#521A4A',
+              muted: '#703468',
+            },
+            cream: {
+              DEFAULT: '#FDFBD4',
+              soft: '#FBF9E3',
+              warm: '#F3EEBA',
+              paper: '#FEFDF2',
+            },
+            gold: {
+              DEFAULT: '#C9A461',
+              light: '#E3C78F',
+            }
+          },
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #FDFBD4;
+      color: #3A0F34;
+      font-family: 'Inter', system-ui, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    #world-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .font-editorial {
+      font-family: 'Playfair Display', Georgia, serif;
+    }
+
+    .hud-glass {
+      background: rgba(58, 15, 52, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .hud-cream {
+      background: rgba(253, 251, 212, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .modal-backdrop {
+      background: rgba(28, 5, 25, 0.72);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    .touch-btn:active {
+      transform: scale(0.93);
+      background-color: #521A4A;
+    }
+
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); opacity: 0.9; }
+      50% { transform: scale(1.03); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.9; }
+    }
+
+    .pulse-pill {
+      animation: pulseRing 1.8s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <!-- 3D WebGL Canvas -->
+  <canvas id="world-canvas" aria-label="Interactive 3D world of Classic Group Of Business"></canvas>
+
+  <!-- Toast -->
+  <div id="toast" role="status" aria-live="polite"
+       class="pointer-events-none fixed left-1/2 top-20 z-50 hidden -translate-x-1/2 rounded-full border border-gold/50 bg-plum-deep px-4 py-2 text-xs font-medium text-cream shadow-2xl">
+    <span id="toast-msg">Copied</span>
+  </div>
+
+  <!-- Welcome / Controls Intro Overlay -->
+  <div id="intro-overlay" class="fixed inset-0 z-40 flex items-center justify-center bg-plum/80 p-4 backdrop-blur-md">
+    <div class="w-full max-w-lg rounded-3xl border border-gold/40 bg-cream-paper p-6 text-center shadow-2xl sm:p-8">
+      <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-gold/50 bg-plum text-cream shadow-lg">
+        <span class="font-editorial text-xl font-bold">CG</span>
+      </div>
+      <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.26em] text-plum-muted">
+        Interactive 3D Portfolio World
+      </p>
+      <h1 class="font-editorial mt-1.5 text-3xl font-bold text-plum sm:text-4xl">
+        Classic Group Of Business
+      </h1>
+      <p class="mt-3 text-sm leading-relaxed text-plum/80">
+        Drive across our 3D campus to visit all <strong>7 businesses</strong>—Forma Construction, Antara Architects, Nityajit Tech, Advika Enterprises, Satvik Tours &amp; Travels, Alka Poultry Farms, and Sandip Traders—or jump straight to any pavilion.
+      </p>
+
+      <div class="mt-5 grid grid-cols-2 gap-2.5 text-left text-xs text-plum">
+        <div class="rounded-xl border border-plum/12 bg-cream px-3.5 py-2.5">
+          <span class="font-semibold">WASD / Arrows</span>
+          <span class="block text-[11px] text-plum/70">Drive &amp; Steer</span>
+        </div>
+        <div class="rounded-xl border border-plum/12 bg-cream px-3.5 py-2.5">
+          <span class="font-semibold">Shift &middot; Space &middot; H</span>
+          <span class="block text-[11px] text-plum/70">Boost &middot; Brake &middot; Horn</span>
+        </div>
+        <div class="rounded-xl border border-plum/12 bg-cream px-3.5 py-2.5">
+          <span class="font-semibold">Drive onto Pads</span>
+          <span class="block text-[11px] text-plum/70">Explore &amp; Inquire</span>
+        </div>
+        <div class="rounded-xl border border-plum/12 bg-cream px-3.5 py-2.5">
+          <span class="font-semibold">Quick Jump Menu</span>
+          <span class="block text-[11px] text-plum/70">Auto-drive to any venture</span>
+        </div>
+      </div>
+
+      <button id="start-world-btn" type="button"
+              class="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-plum px-7 py-3.5 text-sm font-semibold text-cream shadow-lg transition hover:bg-plum-light">
+        Start Driving
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Top HUD Bar -->
+  <header class="pointer-events-none fixed inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-3 sm:p-5">
+    <!-- Brand Pill -->
+    <div class="pointer-events-auto flex items-center gap-2.5 rounded-2xl border border-gold/35 hud-glass px-3.5 py-2 text-cream shadow-xl">
+      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gold/45 bg-plum-deep">
+        <span class="font-editorial text-sm font-bold text-cream">CG</span>
+      </div>
+      <div class="leading-tight">
+        <p class="font-editorial text-sm font-semibold tracking-wide text-cream sm:text-base">Classic Group</p>
+        <p class="text-[10px] font-medium uppercase tracking-[0.2em] text-gold-light">Of Business &middot; 3D</p>
+      </div>
+    </div>
+
+    <!-- Top Right Utility Controls -->
+    <div class="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
+      <button id="directory-toggle-btn" type="button"
+              class="inline-flex items-center gap-1.5 rounded-full border border-gold/40 hud-glass px-3.5 py-2 text-xs font-semibold text-cream shadow-lg transition hover:bg-plum-light">
+        <svg class="h-3.5 w-3.5 text-gold-light" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+        </svg>
+        <span>7 Ventures</span>
+      </button>
+
+      <button id="open-contact-btn" type="button"
+              class="inline-flex items-center gap-1.5 rounded-full bg-cream px-3.5 py-2 text-xs font-semibold text-plum shadow-lg transition hover:bg-cream-warm">
+        <span>Contact Desk</span>
+      </button>
+
+      <button id="sound-toggle-btn" type="button" aria-label="Toggle Sound"
+              class="flex h-9 w-9 items-center justify-center rounded-full border border-gold/35 hud-glass text-cream shadow-lg transition hover:bg-plum-light"
+              title="Toggle Sound">
+        <svg id="sound-on-icon" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+        </svg>
+        <svg id="sound-off-icon" class="hidden h-4 w-4 text-cream/60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+        </svg>
+      </button>
+
+      <button id="reset-car-btn" type="button" aria-label="Reset Car to Center"
+              class="flex h-9 w-9 items-center justify-center rounded-full border border-gold/35 hud-glass text-cream shadow-lg transition hover:bg-plum-light"
+              title="Reset Car (R)">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Quick-Jump Directory Drawer (Right Side) -->
+  <aside id="directory-drawer"
+         class="fixed right-3 top-16 z-30 hidden w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-gold/40 hud-glass p-3.5 text-cream shadow-2xl sm:right-5 sm:top-20">
+    <div class="flex items-center justify-between border-b border-cream/15 pb-2.5">
+      <div>
+        <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-gold-light">Autopilot Navigation</p>
+        <p class="font-editorial text-sm font-semibold text-cream">Jump to Any Venture</p>
+      </div>
+      <button id="close-directory-btn" type="button" aria-label="Close directory"
+              class="rounded-lg p-1 text-cream/75 hover:bg-plum-light hover:text-cream">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <div id="directory-list" class="mt-2.5 max-h-80 space-y-1.5 overflow-y-auto pr-1"></div>
+  </aside>
+
+  <!-- Proximity Zone Action Prompt (Bottom Center) -->
+  <div id="zone-prompt"
+       class="fixed bottom-24 left-1/2 z-20 hidden -translate-x-1/2 sm:bottom-8">
+    <button id="zone-prompt-btn" type="button"
+            class="pulse-pill flex items-center gap-3 rounded-full border-2 border-gold bg-plum px-5 py-3 text-left text-cream shadow-2xl transition hover:bg-plum-light">
+      <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cream text-xs font-bold text-plum" id="zone-prompt-num">01</span>
+      <span class="leading-tight">
+        <span class="block text-xs font-semibold text-cream sm:text-sm" id="zone-prompt-title">Forma Construction</span>
+        <span class="block text-[11px] text-gold-light">Press ENTER or Click to Explore</span>
+      </span>
+    </button>
+  </div>
+
+  <!-- Bottom Left: Touch & Click Driving Controls + Speedometer -->
+  <div class="pointer-events-none fixed bottom-3 left-3 z-20 flex items-end gap-3 sm:bottom-5 sm:left-5">
+    <!-- On-Screen Touch D-Pad (Always usable on mobile & clickable on desktop) -->
+    <div class="pointer-events-auto flex flex-col items-center gap-1.5 rounded-2xl border border-plum/15 hud-cream p-2 shadow-xl">
+      <button type="button" data-key="up" aria-label="Drive Forward"
+              class="touch-btn flex h-10 w-10 items-center justify-center rounded-xl bg-plum text-cream shadow">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+        </svg>
+      </button>
+      <div class="flex items-center gap-1.5">
+        <button type="button" data-key="left" aria-label="Steer Left"
+                class="touch-btn flex h-10 w-10 items-center justify-center rounded-xl bg-plum text-cream shadow">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button type="button" data-key="down" aria-label="Reverse"
+                class="touch-btn flex h-10 w-10 items-center justify-center rounded-xl bg-plum text-cream shadow">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <button type="button" data-key="right" aria-label="Steer Right"
+                class="touch-btn flex h-10 w-10 items-center justify-center rounded-xl bg-plum text-cream shadow">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Boost & Horn Buttons -->
+    <div class="pointer-events-auto flex flex-col gap-1.5">
+      <button id="boost-btn" type="button" data-key="boost"
+              class="touch-btn rounded-xl border border-gold/50 bg-plum px-3 py-2 text-[11px] font-semibold text-cream shadow-lg">
+        BOOST
+      </button>
+      <button id="horn-btn" type="button"
+              class="touch-btn rounded-xl border border-plum/20 hud-cream px-3 py-2 text-[11px] font-semibold text-plum shadow-lg">
+        HORN
+      </button>
+    </div>
+  </div>
+
+  <!-- Bottom Right: Live Radar Minimap + Speed Readout -->
+  <div class="pointer-events-none fixed bottom-3 right-3 z-20 flex flex-col items-end gap-2 sm:bottom-5 sm:right-5">
+    <div class="pointer-events-auto rounded-2xl border border-gold/40 hud-glass p-2 shadow-2xl">
+      <canvas id="minimap" width="128" height="128" class="block h-28 w-28 rounded-xl sm:h-32 sm:w-32"></canvas>
+      <div class="mt-1.5 flex items-center justify-between px-1 text-[10px] font-medium text-cream/85">
+        <span id="hud-speed">0 KM/H</span>
+        <span id="hud-visited" class="text-gold-light">0/7 Visited</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Venture Detail Modal -->
+  <div id="venture-modal" role="dialog" aria-modal="true" aria-labelledby="v-modal-title"
+       class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-gold/40 bg-cream-paper shadow-2xl">
+      <div class="bg-plum px-6 py-5 text-cream sm:px-7">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <span id="v-modal-badge" class="inline-block rounded-full border border-gold/40 bg-plum-deep px-3 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-gold-light"></span>
+            <h2 id="v-modal-title" class="font-editorial mt-2 text-2xl font-bold text-cream sm:text-3xl"></h2>
+            <p id="v-modal-tagline" class="mt-1 text-xs text-cream/80 sm:text-sm"></p>
+          </div>
+          <button id="v-modal-close" type="button" aria-label="Close venture details"
+                  class="rounded-full border border-cream/25 p-2 text-cream hover:bg-plum-light">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6 sm:p-7">
+        <p id="v-modal-desc" class="text-sm leading-relaxed text-plum/85"></p>
+
+        <h3 class="mt-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-plum-muted">Core Services</h3>
+        <ul id="v-modal-services" class="mt-2.5 grid gap-2 sm:grid-cols-2"></ul>
+
+        <div class="mt-5 rounded-2xl border border-plum/12 bg-cream p-4">
+          <p class="text-[10px] font-semibold uppercase tracking-widest text-plum-muted">Ideal For</p>
+          <p id="v-modal-ideal" class="mt-1 text-xs leading-relaxed text-plum/85 sm:text-sm"></p>
+        </div>
+
+        <div class="mt-6 flex flex-wrap items-center justify-end gap-2.5">
+          <button id="v-modal-drive-btn" type="button"
+                  class="rounded-full border border-plum/25 px-5 py-2.5 text-xs font-semibold text-plum hover:border-plum">
+            Back to Driving
+          </button>
+          <button id="v-modal-inquire-btn" type="button"
+                  class="inline-flex items-center gap-2 rounded-full bg-plum px-6 py-2.5 text-xs font-semibold text-cream hover:bg-plum-light">
+            Inquire About This Venture &rarr;
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact & Communication Modal -->
+  <div id="contact-modal" role="dialog" aria-modal="true" aria-labelledby="c-modal-title"
+       class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-gold/40 bg-cream-paper shadow-2xl">
+      <div class="bg-plum px-6 py-5 text-cream sm:px-7">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <span class="inline-block rounded-full border border-gold/40 bg-plum-deep px-3 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-gold-light">
+              Classic Group Desk
+            </span>
+            <h2 id="c-modal-title" class="font-editorial mt-2 text-2xl font-bold text-cream">
+              Connect With Our Team
+            </h2>
+            <p class="mt-1 text-xs text-cream/80">
+              Pune, Maharashtra &middot; 19classicgroup@gmail.com &middot; +91 91461 34612
+            </p>
+          </div>
+          <button id="c-modal-close" type="button" aria-label="Close contact desk"
+                  class="rounded-full border border-cream/25 p-2 text-cream hover:bg-plum-light">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6 sm:p-7">
+        <!-- Quick Copy Contact Row -->
+        <div class="mb-5 grid gap-2.5 sm:grid-cols-2">
+          <div class="flex items-center justify-between rounded-xl border border-plum/15 bg-cream px-3.5 py-2.5 text-xs">
+            <span class="truncate font-medium text-plum">19classicgroup@gmail.com</span>
+            <button type="button" data-copy="19classicgroup@gmail.com"
+                    class="copy-btn ml-2 shrink-0 rounded-lg bg-plum px-2.5 py-1 text-[11px] font-semibold text-cream hover:bg-plum-light">Copy</button>
+          </div>
+          <div class="flex items-center justify-between rounded-xl border border-plum/15 bg-cream px-3.5 py-2.5 text-xs">
+            <span class="truncate font-medium text-plum">+91 91461 34612</span>
+            <button type="button" data-copy="+91 9146134612"
+                    class="copy-btn ml-2 shrink-0 rounded-lg bg-plum px-2.5 py-1 text-[11px] font-semibold text-cream hover:bg-plum-light">Copy</button>
+          </div>
+        </div>
+
+        <form id="contact-form" novalidate class="space-y-4">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="c-name" class="block text-[11px] font-semibold uppercase tracking-wider text-plum/80">Your Name *</label>
+              <input id="c-name" type="text" required placeholder="e.g. Rajesh Patil"
+                     class="mt-1 w-full rounded-xl border border-plum/20 bg-cream/60 px-3.5 py-2.5 text-sm text-plum focus:border-plum focus:bg-white focus:outline-none" />
+            </div>
+            <div>
+              <label for="c-contact" class="block text-[11px] font-semibold uppercase tracking-wider text-plum/80">Email or Phone *</label>
+              <input id="c-contact" type="text" required placeholder="you@example.com or +91 ..."
+                     class="mt-1 w-full rounded-xl border border-plum/20 bg-cream/60 px-3.5 py-2.5 text-sm text-plum focus:border-plum focus:bg-white focus:outline-none" />
+            </div>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="c-venture" class="block text-[11px] font-semibold uppercase tracking-wider text-plum/80">Business Vertical</label>
+              <select id="c-venture"
+                      class="mt-1 w-full rounded-xl border border-plum/20 bg-cream/60 px-3.5 py-2.5 text-sm text-plum focus:border-plum focus:bg-white focus:outline-none">
+                <option value="Classic Group Of Business (General)">Classic Group Of Business (General)</option>
+                <option value="Forma Construction">1. Forma Construction</option>
+                <option value="Antara Architects">2. Antara Architects</option>
+                <option value="Nityajit Tech">3. Nityajit Tech</option>
+                <option value="Advika Enterprises">4. Advika Enterprises</option>
+                <option value="Satvik Tours and Travels">5. Satvik Tours and Travels</option>
+                <option value="Alka Poultry Farms">6. Alka Poultry Farms</option>
+                <option value="Sandip Traders">7. Sandip Traders</option>
+              </select>
+            </div>
+            <div>
+              <label for="c-purpose" class="block text-[11px] font-semibold uppercase tracking-wider text-plum/80">Purpose</label>
+              <select id="c-purpose"
+                      class="mt-1 w-full rounded-xl border border-plum/20 bg-cream/60 px-3.5 py-2.5 text-sm text-plum focus:border-plum focus:bg-white focus:outline-none">
+                <option value="Project Consultation">Project Consultation</option>
+                <option value="Request a Quotation">Request a Quotation</option>
+                <option value="Business Partnership">Business Partnership</option>
+                <option value="General Inquiry">General Inquiry</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="c-message" class="block text-[11px] font-semibold uppercase tracking-wider text-plum/80">Message *</label>
+            <textarea id="c-message" rows="3" required placeholder="Tell us about your project or inquiry..."
+                      class="mt-1 w-full rounded-xl border border-plum/20 bg-cream/60 px-3.5 py-2.5 text-sm text-plum focus:border-plum focus:bg-white focus:outline-none"></textarea>
+          </div>
+
+          <div id="c-error" class="hidden rounded-xl border border-red-300 bg-red-50 px-3.5 py-2.5 text-xs font-medium text-red-800"></div>
+
+          <div id="c-success" class="hidden rounded-2xl border border-plum/20 bg-cream p-4">
+            <p class="text-xs font-semibold text-plum" id="c-success-title">Inquiry Ready</p>
+            <p class="mt-1 text-xs text-plum/80" id="c-success-body"></p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <a id="c-mailto" href="mailto:19classicgroup@gmail.com"
+                 class="rounded-full bg-plum px-4 py-1.5 text-xs font-semibold text-cream hover:bg-plum-light">Open Email App</a>
+              <button id="c-copy-summary" type="button"
+                      class="rounded-full border border-plum/25 bg-cream-paper px-4 py-1.5 text-xs font-semibold text-plum hover:border-plum">Copy Summary</button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2.5 pt-1">
+            <button id="c-cancel-btn" type="button"
+                    class="rounded-full border border-plum/25 px-5 py-2.5 text-xs font-semibold text-plum hover:border-plum">
+              Close
+            </button>
+            <button type="submit"
+                    class="rounded-full bg-plum px-7 py-2.5 text-xs font-semibold text-cream shadow hover:bg-plum-light">
+              Send Inquiry
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // DATA: Classic Group Of Business — 7 Ventures + Contact Pavilion
+    // =========================================================================
+    const ZONES = [
+      {
+        id: 'forma-construction',
+        number: '01',
+        name: 'Forma Construction',
+        sector: 'Infrastructure & Design',
+        tagline: 'Precision Civil Engineering & Turnkey Execution',
+        desc: 'Forma Construction delivers residential, commercial, and civil infrastructure from foundation to handover—combining structural integrity, quality materials, and disciplined site supervision.',
+        services: ['Turnkey Residential & Commercial Builds', 'Structural RCC Execution', 'Site Development & Supervision', 'Renovation & Finishing'],
+        idealFor: 'Property owners, developers, and commercial establishments seeking reliable construction delivery.',
+        x: -24, z: -22, padColor: 0x3A0F34, type: 'construction'
+      },
+      {
+        id: 'antara-architects',
+        number: '02',
+        name: 'Antara Architects',
+        sector: 'Infrastructure & Design',
+        tagline: 'Thoughtful Spatial Design & Contemporary Architecture',
+        desc: 'Antara Architects crafts modern residential and commercial spaces that balance proportion, natural light, and everyday utility—from concept design and 3D visuals to bespoke interiors.',
+        services: ['Architectural Concept & Planning', 'Interior Architecture', '3D Visualization & Drawings', 'Climate-Responsive Design'],
+        idealFor: 'Homeowners, brands, and institutions looking for refined architectural identity.',
+        x: 0, z: -30, padColor: 0x521A4A, type: 'architects'
+      },
+      {
+        id: 'nityajit-tech',
+        number: '03',
+        name: 'Nityajit Tech',
+        sector: 'Technology & Digital',
+        tagline: 'Modern Software, Web Systems & Digital Automation',
+        desc: 'Nityajit Tech builds custom web applications, retail and agricultural management platforms, and workflow automation systems tailored for growing enterprises.',
+        services: ['Custom Web & Mobile Apps', 'Business Automation Platforms', 'UI/UX & Brand Websites', 'Technical Consulting & Support'],
+        idealFor: 'SMEs, retail shops, agribusinesses, and startups seeking dependable custom software.',
+        x: 24, z: -22, padColor: 0x3A0F34, type: 'tech'
+      },
+      {
+        id: 'advika-enterprises',
+        number: '04',
+        name: 'Advika Enterprises',
+        sector: 'Commercial & Supply',
+        tagline: 'Dependable Commercial Operations & B2B Supply',
+        desc: 'Advika Enterprises bridges quality suppliers with commercial and institutional buyers—providing streamlined procurement, transparent documentation, and timely fulfillment.',
+        services: ['B2B Procurement & Supply', 'Vendor Coordination', 'Institutional Bulk Contracts', 'Enterprise Operations Support'],
+        idealFor: 'Businesses, contractors, and institutions needing a dependable commercial supply partner.',
+        x: 30, z: 4, padColor: 0x521A4A, type: 'enterprises'
+      },
+      {
+        id: 'satvik-tours',
+        number: '05',
+        name: 'Satvik Tours and Travels',
+        sector: 'Travel & Mobility',
+        tagline: 'Curated Journeys, Group Tours & Reliable Fleet',
+        desc: 'Satvik Tours and Travels organizes comfortable family holidays, pilgrimage circuits, corporate travel, and dedicated vehicle charters with punctual coordination.',
+        services: ['Family & Leisure Tour Packages', 'Pilgrimage & Heritage Tours', 'Corporate Travel Logistics', 'Vehicle Charter & Fleet Services'],
+        idealFor: 'Families, corporate teams, and group travelers seeking smooth, memorable journeys.',
+        x: 20, z: 26, padColor: 0x3A0F34, type: 'travel'
+      },
+      {
+        id: 'alka-poultry',
+        number: '06',
+        name: 'Alka Poultry Farms',
+        sector: 'Agribusiness',
+        tagline: 'Hygienic Modern Poultry Farming & Quality Supply',
+        desc: 'Alka Poultry Farms combines bio-secure farm management, balanced nutrition, and scheduled dispatch to deliver consistent, farm-fresh poultry supply across regional markets.',
+        services: ['Bio-Secure Poultry Operations', 'Wholesale Market Supply', 'Strict Hygiene Standards', 'Scheduled Bulk Dispatch'],
+        idealFor: 'Distributors, regional markets, and food-sector buyers seeking dependable poultry supply.',
+        x: -20, z: 26, padColor: 0x521A4A, type: 'poultry'
+      },
+      {
+        id: 'sandip-traders',
+        number: '07',
+        name: 'Sandip Traders',
+        sector: 'Wholesale & Distribution',
+        tagline: 'Trusted Wholesale Trading & Distribution Network',
+        desc: 'Sandip Traders maintains reliable commodity sourcing, fair wholesale pricing, and steady inventory flow for retail partners and bulk buyers across the region.',
+        services: ['Wholesale Goods Trading', 'Retail Distribution Network', 'Bulk Sourcing & Inventory', 'Timely Regional Logistics'],
+        idealFor: 'Retailers and commercial buyers looking for an honest, steady wholesale partner.',
+        x: -30, z: 4, padColor: 0x3A0F34, type: 'traders'
+      },
+      {
+        id: 'contact-desk',
+        number: 'HQ',
+        name: 'Contact Desk',
+        sector: 'Classic Group Hub',
+        tagline: 'Direct Communication & Inquiries',
+        desc: 'Reach the Classic Group Of Business desk directly.',
+        services: [],
+        idealFor: '',
+        x: 0, z: 24, padColor: 0xC9A461, type: 'contact', isContact: true
+      }
+    ];
+
+    // =========================================================================
+    // AUDIO ENGINE (Web Audio API — Synthesized, No External Files)
+    // =========================================================================
+    const sound = {
+      ctx: null,
+      enabled: true,
+      started: false,
+      engineOsc: null,
+      engineGain: null,
+      init() {
+        if (this.started) return;
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          this.ctx = new AudioCtx();
+          this.engineOsc = this.ctx.createOscillator();
+          this.engineGain = this.ctx.createGain();
+          this.engineOsc.type = 'triangle';
+          this.engineOsc.frequency.value = 58;
+          this.engineGain.gain.value = 0.0;
+          this.engineOsc.connect(this.engineGain);
+          this.engineGain.connect(this.ctx.destination);
+          this.engineOsc.start();
+          this.started = true;
+        } catch (e) {}
+      },
+      updateEngine(speedRatio) {
+        if (!this.started || !this.ctx || !this.engineGain) return;
+        if (!this.enabled) {
+          this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+          return;
+        }
+        const targetFreq = 56 + Math.min(Math.abs(speedRatio), 1.4) * 85;
+        const targetVol = 0.012 + Math.min(Math.abs(speedRatio), 1.0) * 0.028;
+        this.engineOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.06);
+        this.engineGain.gain.setTargetAtTime(targetVol, this.ctx.currentTime, 0.08);
+      },
+      playHorn() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [370, 466].forEach(freq => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.exponentialRampToValueAtTime(0.055, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        });
+      },
+      playChime() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [523.25, 659.25, 783.99].forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + i * 0.06);
+          gain.gain.setValueAtTime(0.001, now + i * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.05, now + i * 0.06 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.26);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.06);
+          osc.stop(now + i * 0.06 + 0.28);
+        });
+      },
+      playBump() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(55, now + 0.12);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.14);
+      }
+    };
+
+    // =========================================================================
+    // APP STATE & UI HELPERS
+    // =========================================================================
+    const appState = {
+      started: false,
+      modalOpen: false,
+      activeZone: null,
+      visitedIds: new Set(),
+      autopilotTarget: null,
+      lastSummary: '',
+      keys: { up: false, down: false, left: false, right: false, boost: false, brake: false }
+    };
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.add('hidden'), 2400);
+    }
+
+    function copyText(text, msg) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast(msg)).catch(() => fallbackCopy(text, msg));
+      } else {
+        fallbackCopy(text, msg);
+      }
+    }
+
+    function fallbackCopy(text, msg) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast(msg);
+      } catch (e) {}
+      document.body.removeChild(ta);
+    }
+
+    // =========================================================================
+    // THREE.JS SCENE SETUP (Bruno Simon Warm Matte Isometric World)
+    // =========================================================================
+    const canvas = document.getElementById('world-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#F7F3C8');
+    scene.fog = new THREE.Fog('#F7F3C8', 58, 128);
+
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.5, 220);
+    camera.position.set(16, 18, 22);
+
+    // Lighting
+    const hemiLight = new THREE.HemisphereLight('#FDFBD4', '#8B5E7E', 0.78);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight('#FFFDF0', 0.95);
+    dirLight.position.set(32, 48, 26);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 10;
+    dirLight.shadow.camera.far = 140;
+    const d = 52;
+    dirLight.shadow.camera.left = -d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = -d;
+    dirLight.shadow.bias = -0.0005;
+    scene.add(dirLight);
+
+    // Shared Materials (Exact #3A0F34 & #FDFBD4 Theme)
+    const matPlum = new THREE.MeshStandardMaterial({ color: 0x3A0F34, roughness: 0.45, metalness: 0.12 });
+    const matPlumLight = new THREE.MeshStandardMaterial({ color: 0x5A2051, roughness: 0.5, metalness: 0.1 });
+    const matCream = new THREE.MeshStandardMaterial({ color: 0xFDFBD4, roughness: 0.65, metalness: 0.05 });
+    const matStone = new THREE.MeshStandardMaterial({ color: 0xEFEAC0, roughness: 0.85 });
+    const matGold = new THREE.MeshStandardMaterial({ color: 0xC9A461, roughness: 0.32, metalness: 0.55 });
+    const matDark = new THREE.MeshStandardMaterial({ color: 0x20071D, roughness: 0.6 });
+    const matGlass = new THREE.MeshStandardMaterial({ color: 0xE6D8F2, roughness: 0.15, metalness: 0.25, transparent: true, opacity: 0.78 });
+    const matFoliage = new THREE.MeshStandardMaterial({ color: 0x6B4E71, roughness: 0.8 });
+    const matFoliageWarm = new THREE.MeshStandardMaterial({ color: 0x8C6B4A, roughness: 0.8 });
+
+    // Ground Plane
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(260, 260),
+      new THREE.MeshStandardMaterial({ color: 0xF5F0C1, roughness: 0.95 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Central Plaza Ring & Radial Roads
+    const plazaRing = new THREE.Mesh(new THREE.RingGeometry(6.8, 8.6, 48), new THREE.MeshStandardMaterial({ color: 0x3A0F34, roughness: 0.85 }));
+    plazaRing.rotation.x = -Math.PI / 2;
+    plazaRing.position.y = 0.02;
+    plazaRing.receiveShadow = true;
+    scene.add(plazaRing);
+
+    const outerLoop = new THREE.Mesh(new THREE.RingGeometry(21.5, 25.2, 64), new THREE.MeshStandardMaterial({ color: 0xE5DFAB, roughness: 0.9 }));
+    outerLoop.rotation.x = -Math.PI / 2;
+    outerLoop.position.y = 0.015;
+    outerLoop.receiveShadow = true;
+    scene.add(outerLoop);
+
+    // Subtle Compass Lines on Ground
+    ZONES.forEach(z => {
+      const dist = Math.hypot(z.x, z.z);
+      const road = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.6, dist - 7),
+        new THREE.MeshStandardMaterial({ color: 0xE8E2B0, roughness: 0.92 })
+      );
+      road.rotation.x = -Math.PI / 2;
+      road.rotation.z = -Math.atan2(z.x, z.z);
+      road.position.set(z.x * 0.5, 0.018, z.z * 0.5);
+      road.receiveShadow = true;
+      scene.add(road);
+    });
+
+    // Helper: Crisp 2D Canvas Sign Texture
+    function makeSignTexture(title, subtitle, bgHex, textHex, accentHex) {
+      const c = document.createElement('canvas');
+      c.width = 512;
+      c.height = 192;
+      const g = c.getContext('2d');
+      g.fillStyle = bgHex;
+      g.fillRect(0, 0, c.width, c.height);
+      g.strokeStyle = accentHex;
+      g.lineWidth = 10;
+      g.strokeRect(10, 10, c.width - 20, c.height - 20);
+      g.fillStyle = accentHex;
+      g.font = '700 24px Inter, sans-serif';
+      g.textAlign = 'center';
+      g.fillText(subtitle.toUpperCase(), 256, 62);
+      g.fillStyle = textHex;
+      g.font = '700 40px Georgia, serif';
+      g.fillText(title, 256, 128);
+      const tex = new THREE.CanvasTexture(c);
+      tex.anisotropy = 4;
+      return tex;
+    }
+
+    // Central Monument: "CLASSIC GROUP OF BUSINESS"
+    const centerGroup = new THREE.Group();
+    const centerBase = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.7, 0.5, 32), matPlum);
+    centerBase.position.y = 0.25;
+    centerBase.castShadow = true;
+    centerBase.receiveShadow = true;
+    centerGroup.add(centerBase);
+
+    const centerGoldRim = new THREE.Mesh(new THREE.CylinderGeometry(4.28, 4.28, 0.12, 32), matGold);
+    centerGoldRim.position.y = 0.52;
+    centerGroup.add(centerGoldRim);
+
+    const heroSignTex = makeSignTexture('CLASSIC GROUP', 'OF BUSINESS · 7 VENTURES', '#3A0F34', '#FDFBD4', '#C9A461');
+    const heroSign = new THREE.Mesh(
+      new THREE.BoxGeometry(6.2, 2.2, 0.45),
+      [matPlum, matPlum, matGold, matPlum, new THREE.MeshStandardMaterial({ map: heroSignTex, roughness: 0.4 }), new THREE.MeshStandardMaterial({ map: heroSignTex, roughness: 0.4 })]
+    );
+    heroSign.position.set(0, 2.1, 0);
+    heroSign.castShadow = true;
+    centerGroup.add(heroSign);
+
+    [-2.4, 2.4].forEach(px => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 1.4, 12), matGold);
+      leg.position.set(px, 0.85, 0);
+      leg.castShadow = true;
+      centerGroup.add(leg);
+    });
+    scene.add(centerGroup);
+
+    // =========================================================================
+    // BUILD 7 VENTURE PAVILIONS + CONTACT PAVILION
+    // =========================================================================
+    const animatedProps = [];
+    const zoneRings = [];
+
+    function buildPavilion(z) {
+      const group = new THREE.Group();
+      group.position.set(z.x, 0, z.z);
+
+      // Face pavilion inward toward center
+      const angleToCenter = Math.atan2(-z.x, -z.z);
+      group.rotation.y = angleToCenter;
+
+      // Interactive Glowing Parking Pad (in front of pavilion)
+      const padOffset = 4.6;
+      const padMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(3.2, 3.2, 0.08, 32),
+        new THREE.MeshStandardMaterial({ color: z.padColor, roughness: 0.5 })
+      );
+      padMesh.position.set(0, 0.04, padOffset);
+      padMesh.receiveShadow = true;
+      group.add(padMesh);
+
+      const padRing = new THREE.Mesh(
+        new THREE.RingGeometry(2.75, 3.15, 32),
+        new THREE.MeshBasicMaterial({ color: 0xC9A461, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+      );
+      padRing.rotation.x = -Math.PI / 2;
+      padRing.position.set(0, 0.1, padOffset);
+      group.add(padRing);
+      zoneRings.push(padRing);
+
+      // Store world-space coordinates of the parking pad for accurate proximity detection
+      const padWorld = new THREE.Vector3(0, 0, padOffset);
+      padWorld.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleToCenter);
+      z.padX = z.x + padWorld.x;
+      z.padZ = z.z + padWorld.z;
+
+      // Pavilion Plinth
+      const plinth = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.45, 5.2), matCream);
+      plinth.position.set(0, 0.225, -1.2);
+      plinth.castShadow = true;
+      plinth.receiveShadow = true;
+      group.add(plinth);
+
+      // Unique 3D Landmark per Business
+      if (z.type === 'construction') {
+        const tower = new THREE.Mesh(new THREE.BoxGeometry(3.2, 4.6, 2.8), matPlum);
+        tower.position.set(-1.2, 2.5, -1.2);
+        tower.castShadow = true;
+        group.add(tower);
+        const craneMast = new THREE.Mesh(new THREE.BoxGeometry(0.35, 7.0, 0.35), matGold);
+        craneMast.position.set(2.1, 3.7, -1.4);
+        craneMast.castShadow = true;
+        group.add(craneMast);
+        const craneArm = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.3, 0.3), matGold);
+        craneArm.position.set(0.5, 7.1, -1.4);
+        craneArm.castShadow = true;
+        group.add(craneArm);
+      } else if (z.type === 'architects') {
+        const baseArch = new THREE.Mesh(new THREE.BoxGeometry(5.4, 2.6, 2.8), matPlumLight);
+        baseArch.position.set(0, 1.5, -1.4);
+        baseArch.castShadow = true;
+        group.add(baseArch);
+        const cantilever = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.55, 3.6), matCream);
+        cantilever.position.set(0.6, 3.0, -1.0);
+        cantilever.castShadow = true;
+        group.add(cantilever);
+        const glassCube = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.2, 2.2), matGlass);
+        glassCube.position.set(-0.8, 4.3, -1.2);
+        group.add(glassCube);
+      } else if (z.type === 'tech') {
+        [-1.8, 0, 1.8].forEach((bx, idx) => {
+          const h = idx === 1 ? 4.4 : 3.1;
+          const rack = new THREE.Mesh(new THREE.BoxGeometry(1.1, h, 1.2), matPlum);
+          rack.position.set(bx, 0.45 + h / 2, -1.4);
+          rack.castShadow = true;
+          group.add(rack);
+        });
+        const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.95, 0), matGold);
+        crystal.position.set(0, 6.1, -1.4);
+        crystal.castShadow = true;
+        group.add(crystal);
+        animatedProps.push({ mesh: crystal, mode: 'spin-float', baseY: 6.1 });
+      } else if (z.type === 'enterprises') {
+        const hq = new THREE.Mesh(new THREE.BoxGeometry(4.4, 3.8, 3.0), matPlum);
+        hq.position.set(-0.9, 2.35, -1.4);
+        hq.castShadow = true;
+        group.add(hq);
+        const crate1 = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 1.4), matGold);
+        crate1.position.set(2.2, 1.05, -1.0);
+        crate1.castShadow = true;
+        group.add(crate1);
+        const crate2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.0, 1.2), matPlumLight);
+        crate2.position.set(2.2, 2.15, -1.0);
+        crate2.castShadow = true;
+        group.add(crate2);
+      } else if (z.type === 'travel') {
+        const archLeft = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 4.2, 12), matPlum);
+        archLeft.position.set(-2.3, 2.5, -1.3);
+        archLeft.castShadow = true;
+        group.add(archLeft);
+        const archRight = archLeft.clone();
+        archRight.position.x = 2.3;
+        group.add(archRight);
+        const archTop = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.55, 0.9), matPlum);
+        archTop.position.set(0, 4.6, -1.3);
+        archTop.castShadow = true;
+        group.add(archTop);
+        const globe = new THREE.Mesh(new THREE.IcosahedronGeometry(1.05, 1), matGold);
+        globe.position.set(0, 2.6, -1.3);
+        globe.castShadow = true;
+        group.add(globe);
+        animatedProps.push({ mesh: globe, mode: 'spin', baseY: 2.6 });
+      } else if (z.type === 'poultry') {
+        const barn = new THREE.Mesh(new THREE.BoxGeometry(4.4, 2.6, 3.0), matPlum);
+        barn.position.set(-0.9, 1.75, -1.4);
+        barn.castShadow = true;
+        group.add(barn);
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(3.4, 1.6, 4), matGold);
+        roof.rotation.y = Math.PI / 4;
+        roof.position.set(-0.9, 3.85, -1.4);
+        roof.castShadow = true;
+        group.add(roof);
+        const silo = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 4.5, 16), matCream);
+        silo.position.set(2.3, 2.7, -1.5);
+        silo.castShadow = true;
+        group.add(silo);
+        const siloCap = new THREE.Mesh(new THREE.SphereGeometry(0.85, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), matPlumLight);
+        siloCap.position.set(2.3, 4.95, -1.5);
+        group.add(siloCap);
+      } else if (z.type === 'traders') {
+        const depot = new THREE.Mesh(new THREE.BoxGeometry(5.2, 3.0, 3.2), matPlumLight);
+        depot.position.set(0, 1.95, -1.5);
+        depot.castShadow = true;
+        group.add(depot);
+        const awning = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.25, 1.4), matGold);
+        awning.position.set(0, 2.6, 0.6);
+        awning.rotation.x = 0.2;
+        awning.castShadow = true;
+        group.add(awning);
+        [-1.6, 0, 1.6].forEach(cx => {
+          const box = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), matCream);
+          box.position.set(cx, 0.9, 0.4);
+          box.castShadow = true;
+          group.add(box);
+        });
+      } else if (z.type === 'contact') {
+        const pillarL = new THREE.Mesh(new THREE.BoxGeometry(0.8, 4.5, 0.8), matPlum);
+        pillarL.position.set(-2.6, 2.5, -1.2);
+        pillarL.castShadow = true;
+        group.add(pillarL);
+        const pillarR = pillarL.clone();
+        pillarR.position.x = 2.6;
+        group.add(pillarR);
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.9, 1.1), matGold);
+        beam.position.set(0, 4.9, -1.2);
+        beam.castShadow = true;
+        group.add(beam);
+      }
+
+      // Billboard Sign above each pavilion
+      const signTex = makeSignTexture(
+        z.name,
+        z.isContact ? 'GET IN TOUCH' : `${z.number} · ${z.sector}`,
+        z.isContact ? '#C9A461' : '#3A0F34',
+        z.isContact ? '#3A0F34' : '#FDFBD4',
+        z.isContact ? '#3A0F34' : '#C9A461'
+      );
+      const signBoard = new THREE.Mesh(
+        new THREE.BoxGeometry(5.2, 1.75, 0.24),
+        [matPlum, matPlum, matGold, matPlum, new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.4 }), matPlum]
+      );
+      signBoard.position.set(0, 6.2, 0.6);
+      signBoard.castShadow = true;
+      group.add(signBoard);
+
+      scene.add(group);
+    }
+
+    ZONES.forEach(buildPavilion);
+
+    // =========================================================================
+    // SCENIC TREES & FUN KNOCKABLE PROPS (Bruno Simon Toy Physics!)
+    // =========================================================================
+    function addTree(x, z, scale) {
+      const tree = new THREE.Group();
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18 * scale, 0.26 * scale, 1.3 * scale, 8), matPlum);
+      trunk.position.y = 0.65 * scale;
+      trunk.castShadow = true;
+      tree.add(trunk);
+
+      const foliage = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(1.15 * scale, 0),
+        Math.random() > 0.45 ? matFoliage : matFoliageWarm
+      );
+      foliage.position.y = 1.95 * scale;
+      foliage.castShadow = true;
+      tree.add(foliage);
+
+      tree.position.set(x, 0, z);
+      scene.add(tree);
+    }
+
+    const treeCoords = [
+      [-14, -14, 1.1], [14, -14, 1.2], [16, 14, 1.0], [-16, 14, 1.15],
+      [-38, -16, 1.3], [38, -16, 1.25], [38, 18, 1.2], [-38, 18, 1.3],
+      [-12, -38, 1.2], [12, -38, 1.1], [14, 38, 1.25], [-14, 38, 1.2],
+      [-36, 30, 1.1], [36, 30, 1.15], [34, -34, 1.3], [-34, -34, 1.25]
+    ];
+    treeCoords.forEach(([tx, tz, ts]) => addTree(tx, tz, ts));
+
+    // Knockable Cones / Blocks
+    const knockables = [];
+    function spawnKnockable(x, z, kind) {
+      const mesh = kind === 'cone'
+        ? new THREE.Mesh(new THREE.ConeGeometry(0.36, 0.9, 10), matGold)
+        : new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.75, 0.75), matPlumLight);
+      const baseY = kind === 'cone' ? 0.45 : 0.375;
+      mesh.position.set(x, baseY, z);
+      mesh.castShadow = true;
+      scene.add(mesh);
+      knockables.push({
+        mesh, vx: 0, vy: 0, vz: 0, rx: 0, rz: 0, baseY, radius: 0.45
+      });
+    }
+
+    // Place a playful bowling-pin cluster of gold cones & plum blocks near the plaza!
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col <= row; col++) {
+        spawnKnockable(11 + row * 1.15, -5 + (col - row * 0.5) * 1.15, 'cone');
+      }
+    }
+    for (let i = 0; i < 4; i++) {
+      spawnKnockable(-11 - (i % 2) * 0.95, 5 + Math.floor(i / 2) * 0.95, 'block');
+    }
+
+    // =========================================================================
+    // BUILD THE DRIVABLE CAR (Classic Group Executive Roadster)
+    // =========================================================================
+    const car = new THREE.Group();
+    car.position.set(0, 0, 10.5);
+
+    const carBodyGroup = new THREE.Group();
+    car.add(carBodyGroup);
+
+    // Lower Chassis
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.65, 3.8), matPlum);
+    chassis.position.y = 0.62;
+    chassis.castShadow = true;
+    chassis.receiveShadow = true;
+    carBodyGroup.add(chassis);
+
+    // Cream Accent Stripe
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.06, 0.14, 3.84), matCream);
+    stripe.position.y = 0.62;
+    carBodyGroup.add(stripe);
+
+    // Cabin
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.62, 1.85), matCream);
+    cabin.position.set(0, 1.22, -0.15);
+    cabin.castShadow = true;
+    carBodyGroup.add(cabin);
+
+    // Windshield & Rear Glass
+    const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.46, 1.9), matDark);
+    windshield.position.set(0, 1.22, -0.15);
+    carBodyGroup.add(windshield);
+
+    // Gold Front & Rear Bumpers
+    const frontBumper = new THREE.Mesh(new THREE.BoxGeometry(2.12, 0.22, 0.24), matGold);
+    frontBumper.position.set(0, 0.44, -1.92);
+    carBodyGroup.add(frontBumper);
+    const rearBumper = frontBumper.clone();
+    rearBumper.position.z = 1.92;
+    carBodyGroup.add(rearBumper);
+
+    // Headlights & Brake Lights
+    const headLightMat = new THREE.MeshBasicMaterial({ color: 0xFDFBD4 });
+    const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xB83256 });
+    [-0.65, 0.65].forEach(lx => {
+      const hl = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.08), headLightMat);
+      hl.position.set(lx, 0.72, -1.92);
+      carBodyGroup.add(hl);
+      const tl = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.08), tailLightMat);
+      tl.position.set(lx, 0.72, 1.92);
+      carBodyGroup.add(tl);
+    });
+
+    // Wheels
+    const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.34, 18);
+    wheelGeo.rotateZ(Math.PI / 2);
+    const hubGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.36, 12);
+    hubGeo.rotateZ(Math.PI / 2);
+
+    const wheels = [];
+    const frontWheelPivots = [];
+    [
+      [-1.08, 0.42, -1.22, true],
+      [1.08, 0.42, -1.22, true],
+      [-1.08, 0.42, 1.22, false],
+      [1.08, 0.42, 1.22, false]
+    ].forEach(([wx, wy, wz, isFront]) => {
+      const pivot = new THREE.Group();
+      pivot.position.set(wx, wy, wz);
+      const tire = new THREE.Mesh(wheelGeo, matDark);
+      tire.castShadow = true;
+      const hub = new THREE.Mesh(hubGeo, matGold);
+      tire.add(hub);
+      pivot.add(tire);
+      car.add(pivot);
+      wheels.push(tire);
+      if (isFront) frontWheelPivots.push(pivot);
+    });
+
+    scene.add(car);
+
+    // Dust / Boost Particles
+    const particles = [];
+    const particleGeo = new THREE.SphereGeometry(0.18, 6, 6);
+    const particleMat = new THREE.MeshBasicMaterial({ color: 0xC9A461, transparent: true, opacity: 0.65 });
+
+    function spawnParticle() {
+      const p = new THREE.Mesh(particleGeo, particleMat.clone());
+      const back = new THREE.Vector3((Math.random() - 0.5) * 1.1, 0.25, 2.0);
+      back.applyAxisAngle(new THREE.Vector3(0, 1, 0), car.rotation.y);
+      p.position.copy(car.position).add(back);
+      scene.add(p);
+      particles.push({ mesh: p, life: 1.0, vy: 0.03 + Math.random() * 0.03 });
+    }
+
+    // Car Physics State
+    const carPhysics = {
+      speed: 0,
+      steer: 0,
+      heading: 0,
+      maxSpeed: 0.42,
+      boostSpeed: 0.66,
+      accel: 0.016,
+      friction: 0.965
+    };
+
+    // =========================================================================
+    // DIRECTORY DRAWER & MODAL WIRING
+    // =========================================================================
+    function buildDirectory() {
+      const list = document.getElementById('directory-list');
+      list.innerHTML = ZONES.map(z => `
+        <button type="button" data-jump="${z.id}"
+                class="flex w-full items-center justify-between rounded-xl border border-cream/10 bg-plum-deep/75 px-3 py-2 text-left text-xs transition hover:border-gold/60 hover:bg-plum-light">
+          <span class="flex items-center gap-2.5 truncate">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-cream/15 font-mono text-[10px] font-bold text-gold-light">${z.number}</span>
+            <span class="truncate font-medium text-cream">${z.name}</span>
+          </span>
+          <span class="ml-2 text-[10px] text-gold-light">Go &rarr;</span>
+        </button>
+      `).join('');
+    }
+    buildDirectory();
+
+    function openVentureModal(zone) {
+      if (!zone) return;
+      if (zone.isContact) {
+        openContactModal('Classic Group Of Business (General)');
+        return;
+      }
+      appState.modalOpen = true;
+      appState.visitedIds.add(zone.id);
+      updateVisitedHud();
+
+      document.getElementById('v-modal-badge').textContent = `${zone.number} · ${zone.sector}`;
+      document.getElementById('v-modal-title').textContent = zone.name;
+      document.getElementById('v-modal-tagline').textContent = zone.tagline;
+      document.getElementById('v-modal-desc').textContent = zone.desc;
+      document.getElementById('v-modal-ideal').textContent = zone.idealFor;
+      document.getElementById('v-modal-services').innerHTML = zone.services.map(s => `
+        <li class="flex items-center gap-2 rounded-xl border border-plum/10 bg-cream px-3 py-2 text-xs font-medium text-plum">
+          <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-gold"></span>
+          <span>${s}</span>
+        </li>
+      `).join('');
+
+      const modal = document.getElementById('venture-modal');
+      modal.dataset.ventureName = zone.name;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeVentureModal() {
+      const modal = document.getElementById('venture-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      appState.modalOpen = false;
+    }
+
+    function openContactModal(preselectName) {
+      closeVentureModal();
+      appState.modalOpen = true;
+      const select = document.getElementById('c-venture');
+      if (preselectName) {
+        const match = Array.from(select.options).find(o => o.value === preselectName);
+        if (match) select.value = match.value;
+      }
+      const modal = document.getElementById('contact-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeContactModal() {
+      const modal = document.getElementById('contact-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      appState.modalOpen = false;
+    }
+
+    function updateVisitedHud() {
+      const count = Array.from(appState.visitedIds).filter(id => id !== 'contact-desk').length;
+      document.getElementById('hud-visited').textContent = `${count}/7 Visited`;
+    }
+
+    function jumpToZone(zoneId) {
+      const z = ZONES.find(item => item.id === zoneId);
+      if (!z) return;
+      document.getElementById('directory-drawer').classList.add('hidden');
+      appState.autopilotTarget = z;
+      showToast(`Autopilot engaged: Driving to ${z.name}`);
+    }
+
+    // =========================================================================
+    // INPUT LISTENERS (Keyboard, Touch, Buttons)
+    // =========================================================================
+    window.addEventListener('keydown', (e) => {
+      if (appState.modalOpen) {
+        if (e.key === 'Escape') {
+          closeVentureModal();
+          closeContactModal();
+        }
+        return;
+      }
+      if (!appState.started) return;
+
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.key === 'ArrowUp') { appState.keys.up = true; appState.autopilotTarget = null; }
+      if (k === 's' || e.key === 'ArrowDown') { appState.keys.down = true; appState.autopilotTarget = null; }
+      if (k === 'a' || e.key === 'ArrowLeft') { appState.keys.left = true; appState.autopilotTarget = null; }
+      if (k === 'd' || e.key === 'ArrowRight') { appState.keys.right = true; appState.autopilotTarget = null; }
+      if (e.key === 'Shift') appState.keys.boost = true;
+      if (e.key === ' ') appState.keys.brake = true;
+      if (k === 'h') sound.playHorn();
+      if (k === 'r') resetCar();
+      if (e.key === 'Enter' && appState.activeZone) {
+        openVentureModal(appState.activeZone);
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.key === 'ArrowUp') appState.keys.up = false;
+      if (k === 's' || e.key === 'ArrowDown') appState.keys.down = false;
+      if (k === 'a' || e.key === 'ArrowLeft') appState.keys.left = false;
+      if (k === 'd' || e.key === 'ArrowRight') appState.keys.right = false;
+      if (e.key === 'Shift') appState.keys.boost = false;
+      if (e.key === ' ') appState.keys.brake = false;
+    });
+
+    // Touch & Pointer Driving Buttons
+    document.querySelectorAll('[data-key]').forEach(btn => {
+      const keyName = btn.dataset.key;
+      const press = (ev) => {
+        ev.preventDefault();
+        sound.init();
+        appState.autopilotTarget = null;
+        appState.keys[keyName] = true;
+      };
+      const release = (ev) => {
+        ev.preventDefault();
+        appState.keys[keyName] = false;
+      };
+      btn.addEventListener('pointerdown', press);
+      btn.addEventListener('pointerup', release);
+      btn.addEventListener('pointerleave', release);
+      btn.addEventListener('pointercancel', release);
+    });
+
+    function resetCar() {
+      appState.autopilotTarget = null;
+      car.position.set(0, 0, 10.5);
+      carPhysics.speed = 0;
+      carPhysics.heading = 0;
+      car.rotation.y = 0;
+      showToast('Car returned to Classic Group Plaza');
+    }
+
+    // UI Button Bindings
+    document.getElementById('start-world-btn').addEventListener('click', () => {
+      document.getElementById('intro-overlay').classList.add('hidden');
+      appState.started = true;
+      sound.init();
+      sound.playChime();
+    });
+
+    document.getElementById('directory-toggle-btn').addEventListener('click', () => {
+      document.getElementById('directory-drawer').classList.toggle('hidden');
+    });
+    document.getElementById('close-directory-btn').addEventListener('click', () => {
+      document.getElementById('directory-drawer').classList.add('hidden');
+    });
+
+    document.getElementById('directory-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-jump]');
+      if (btn) jumpToZone(btn.dataset.jump);
+    });
+
+    document.getElementById('open-contact-btn').addEventListener('click', () => {
+      openContactModal('Classic Group Of Business (General)');
+    });
+
+    document.getElementById('sound-toggle-btn').addEventListener('click', () => {
+      sound.enabled = !sound.enabled;
+      document.getElementById('sound-on-icon').classList.toggle('hidden', !sound.enabled);
+      document.getElementById('sound-off-icon').classList.toggle('hidden', sound.enabled);
+      showToast(sound.enabled ? 'Sound enabled' : 'Sound muted');
+    });
+
+    document.getElementById('reset-car-btn').addEventListener('click', resetCar);
+    document.getElementById('horn-btn').addEventListener('click', () => sound.playHorn());
+
+    document.getElementById('zone-prompt-btn').addEventListener('click', () => {
+      if (appState.activeZone) openVentureModal(appState.activeZone);
+    });
+
+    document.getElementById('v-modal-close').addEventListener('click', closeVentureModal);
+    document.getElementById('v-modal-drive-btn').addEventListener('click', closeVentureModal);
+    document.getElementById('venture-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'venture-modal') closeVentureModal();
+    });
+    document.getElementById('v-modal-inquire-btn').addEventListener('click', () => {
+      const name = document.getElementById('venture-modal').dataset.ventureName;
+      openContactModal(name);
+    });
+
+    document.getElementById('c-modal-close').addEventListener('click', closeContactModal);
+    document.getElementById('c-cancel-btn').addEventListener('click', closeContactModal);
+    document.getElementById('contact-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'contact-modal') closeContactModal();
+    });
+
+    document.addEventListener('click', (e) => {
+      const cp = e.target.closest('.copy-btn');
+      if (cp) copyText(cp.dataset.copy, `Copied ${cp.dataset.copy}`);
+    });
+
+    // Contact Form Submission
+    document.getElementById('contact-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('c-name').value.trim();
+      const contact = document.getElementById('c-contact').value.trim();
+      const venture = document.getElementById('c-venture').value;
+      const purpose = document.getElementById('c-purpose').value;
+      const message = document.getElementById('c-message').value.trim();
+      const err = document.getElementById('c-error');
+      const ok = document.getElementById('c-success');
+
+      if (!name || !contact || !message) {
+        err.textContent = 'Please enter your name, email or phone, and message.';
+        err.classList.remove('hidden');
+        ok.classList.add('hidden');
+        return;
+      }
+
+      err.classList.add('hidden');
+      const ref = 'CGB-' + String(Math.floor(1000 + Math.random() * 9000));
+      const summary = `Ref: ${ref}\nBusiness: ${venture} (Classic Group Of Business)\nPurpose: ${purpose}\nFrom: ${name} (${contact})\nMessage: ${message}`;
+      appState.lastSummary = summary;
+
+      document.getElementById('c-success-title').textContent = `Reference ${ref} Prepared for ${venture}`;
+      document.getElementById('c-success-body').textContent = 'Launch your email app or copy the formatted summary below to send immediately.';
+      document.getElementById('c-mailto').href =
+        `mailto:19classicgroup@gmail.com?subject=${encodeURIComponent(`[${ref}] ${purpose} — ${venture}`)}&body=${encodeURIComponent(summary)}`;
+      ok.classList.remove('hidden');
+      sound.playChime();
+
+      document.getElementById('c-name').value = '';
+      document.getElementById('c-contact').value = '';
+      document.getElementById('c-message').value = '';
+    });
+
+    document.getElementById('c-copy-summary').addEventListener('click', () => {
+      if (appState.lastSummary) copyText(appState.lastSummary, 'Inquiry summary copied');
+    });
+
+    // =========================================================================
+    // MINIMAP RENDERER
+    // =========================================================================
+    const minimapCanvas = document.getElementById('minimap');
+    const mCtx = minimapCanvas.getContext('2d');
+
+    function drawMinimap() {
+      const w = minimapCanvas.width;
+      const h = minimapCanvas.height;
+      const scale = 1.45;
+      const cx = w / 2;
+      const cy = h / 2;
+
+      mCtx.clearRect(0, 0, w, h);
+      mCtx.fillStyle = '#260822';
+      mCtx.fillRect(0, 0, w, h);
+
+      // Ring
+      mCtx.strokeStyle = 'rgba(253,251,212,0.18)';
+      mCtx.lineWidth = 1.5;
+      mCtx.beginPath();
+      mCtx.arc(cx, cy, 23 * scale, 0, Math.PI * 2);
+      mCtx.stroke();
+
+      // Zones
+      ZONES.forEach(z => {
+        const zx = cx + z.padX * scale;
+        const zy = cy + z.padZ * scale;
+        mCtx.fillStyle = z.isContact ? '#C9A461' : (appState.visitedIds.has(z.id) ? '#FDFBD4' : '#9B5B91');
+        mCtx.beginPath();
+        mCtx.arc(zx, zy, z.isContact ? 4 : 3.2, 0, Math.PI * 2);
+        mCtx.fill();
+      });
+
+      // Car arrow
+      const px = cx + car.position.x * scale;
+      const py = cy + car.position.z * scale;
+      mCtx.save();
+      mCtx.translate(px, py);
+      mCtx.rotate(-carPhysics.heading);
+      mCtx.fillStyle = '#FDFBD4';
+      mCtx.beginPath();
+      mCtx.moveTo(0, -5.5);
+      mCtx.lineTo(3.8, 4.5);
+      mCtx.lineTo(-3.8, 4.5);
+      mCtx.closePath();
+      mCtx.fill();
+      mCtx.restore();
+    }
+
+    // =========================================================================
+    // MAIN ANIMATION & PHYSICS LOOP
+    // =========================================================================
+    const clock = new THREE.Clock();
+    const camTarget = new THREE.Vector3();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const t = clock.elapsedTime;
+
+      // Animate floating/spinning landmark props & zone rings
+      animatedProps.forEach(p => {
+        p.mesh.rotation.y += dt * 1.1;
+        if (p.mode === 'spin-float') {
+          p.mesh.position.y = p.baseY + Math.sin(t * 2.4) * 0.28;
+        }
+      });
+      zoneRings.forEach((r, idx) => {
+        const s = 1 + Math.sin(t * 3 + idx) * 0.05;
+        r.scale.set(s, s, 1);
+      });
+
+      // Autopilot or Manual Car Physics
+      if (!appState.modalOpen && appState.started) {
+        if (appState.autopilotTarget) {
+          const target = appState.autopilotTarget;
+          const dx = target.padX - car.position.x;
+          const dz = target.padZ - car.position.z;
+          const dist = Math.hypot(dx, dz);
+
+          if (dist < 1.3) {
+            carPhysics.speed *= 0.7;
+            appState.autopilotTarget = null;
+            sound.playChime();
+            openVentureModal(target);
+          } else {
+            const desiredHeading = Math.atan2(-dx, -dz);
+            let diff = desiredHeading - carPhysics.heading;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            carPhysics.heading += diff * 0.1;
+            carPhysics.steer = Math.max(-0.4, Math.min(0.4, diff));
+            carPhysics.speed += (Math.min(0.46, dist * 0.06) - carPhysics.speed) * 0.12;
+          }
+        } else {
+          const maxSpd = appState.keys.boost ? carPhysics.boostSpeed : carPhysics.maxSpeed;
+          if (appState.keys.up) {
+            carPhysics.speed = Math.min(maxSpd, carPhysics.speed + carPhysics.accel * (appState.keys.boost ? 1.5 : 1));
+          } else if (appState.keys.down) {
+            carPhysics.speed = Math.max(-0.26, carPhysics.speed - carPhysics.accel);
+          } else {
+            carPhysics.speed *= carPhysics.friction;
+            if (Math.abs(carPhysics.speed) < 0.002) carPhysics.speed = 0;
+          }
+
+          if (appState.keys.brake) {
+            carPhysics.speed *= 0.86;
+          }
+
+          const steerInput = (appState.keys.left ? 1 : 0) - (appState.keys.right ? 1 : 0);
+          carPhysics.steer += (steerInput * 0.42 - carPhysics.steer) * 0.22;
+
+          if (Math.abs(carPhysics.speed) > 0.008) {
+            const dir = carPhysics.speed >= 0 ? 1 : -1;
+            carPhysics.heading += steerInput * 0.045 * dir * Math.min(1, Math.abs(carPhysics.speed) * 6);
+          }
+        }
+      } else {
+        carPhysics.speed *= 0.9;
+      }
+
+      // Move car & clamp to world bounds
+      car.position.x -= Math.sin(carPhysics.heading) * carPhysics.speed;
+      car.position.z -= Math.cos(carPhysics.heading) * carPhysics.speed;
+      const bound = 48;
+      car.position.x = Math.max(-bound, Math.min(bound, car.position.x));
+      car.position.z = Math.max(-bound, Math.min(bound, car.position.z));
+
+      // Simple obstacle push-out from central monument
+      const centerDist = Math.hypot(car.position.x, car.position.z);
+      if (centerDist < 5.4 && centerDist > 0.01) {
+        const push = 5.4 / centerDist;
+        car.position.x *= push;
+        car.position.z *= push;
+        carPhysics.speed *= 0.5;
+      }
+
+      car.rotation.y = carPhysics.heading;
+
+      // Suspension tilt & wheel animation
+      carBodyGroup.rotation.z = -carPhysics.steer * carPhysics.speed * 0.45;
+      carBodyGroup.rotation.x = -carPhysics.speed * 0.12;
+      wheels.forEach(w => { w.rotation.x -= carPhysics.speed * 1.4; });
+      frontWheelPivots.forEach(p => { p.rotation.y = carPhysics.steer; });
+
+      // Dust particles when moving fast
+      if (Math.abs(carPhysics.speed) > 0.22 && Math.random() < (appState.keys.boost ? 0.65 : 0.28)) {
+        spawnParticle();
+      }
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const pt = particles[i];
+        pt.life -= dt * 1.8;
+        pt.mesh.position.y += pt.vy;
+        pt.mesh.scale.setScalar(Math.max(0.01, pt.life));
+        pt.mesh.material.opacity = pt.life * 0.55;
+        if (pt.life <= 0) {
+          scene.remove(pt.mesh);
+          particles.splice(i, 1);
+        }
+      }
+
+      // Knockable Props Collision
+      knockables.forEach(k => {
+        const dx = k.mesh.position.x - car.position.x;
+        const dz = k.mesh.position.z - car.position.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist < 1.85 && dist > 0.01) {
+          const force = Math.max(0.22, Math.abs(carPhysics.speed) * 1.4);
+          k.vx = (dx / dist) * force;
+          k.vz = (dz / dist) * force;
+          k.vy = 0.16;
+          k.rx = (Math.random() - 0.5) * 0.35;
+          k.rz = (Math.random() - 0.5) * 0.35;
+          sound.playBump();
+        }
+        k.mesh.position.x += k.vx;
+        k.mesh.position.z += k.vz;
+        k.mesh.position.y += k.vy;
+        k.mesh.rotation.x += k.rx;
+        k.mesh.rotation.z += k.rz;
+        if (k.mesh.position.y > k.baseY) {
+          k.vy -= 0.014;
+        } else {
+          k.mesh.position.y = k.baseY;
+          k.vy = 0;
+          k.vx *= 0.88;
+          k.vz *= 0.88;
+          k.rx *= 0.85;
+          k.rz *= 0.85;
+        }
+      });
+
+      // Zone Proximity Detection
+      let nearZone = null;
+      for (const z of ZONES) {
+        const dPad = Math.hypot(car.position.x - z.padX, car.position.z - z.padZ);
+        if (dPad < 3.4) {
+          nearZone = z;
+          break;
+        }
+      }
+
+      const promptEl = document.getElementById('zone-prompt');
+      if (nearZone && !appState.modalOpen) {
+        if (appState.activeZone !== nearZone) {
+          appState.activeZone = nearZone;
+          document.getElementById('zone-prompt-num').textContent = nearZone.number;
+          document.getElementById('zone-prompt-title').textContent = nearZone.name;
+          sound.playChime();
+          if (!nearZone.isContact) {
+            appState.visitedIds.add(nearZone.id);
+            updateVisitedHud();
+          }
+        }
+        promptEl.classList.remove('hidden');
+      } else {
+        appState.activeZone = null;
+        promptEl.classList.add('hidden');
+      }
+
+      // Smooth Isometric Follow Camera
+      const desiredCamX = car.position.x + 15;
+      const desiredCamY = 17.5;
+      const desiredCamZ = car.position.z + 18;
+      camera.position.x += (desiredCamX - camera.position.x) * 0.065;
+      camera.position.y += (desiredCamY - camera.position.y) * 0.065;
+      camera.position.z += (desiredCamZ - camera.position.z) * 0.065;
+      camTarget.lerp(new THREE.Vector3(car.position.x, 1.0, car.position.z), 0.1);
+      camera.lookAt(camTarget);
+
+      // Update Speed & Sound & Minimap
+      const kmh = Math.round(Math.abs(carPhysics.speed) * 145);
+      document.getElementById('hud-speed').textContent = `${kmh} KM/H`;
+      sound.updateEngine(carPhysics.speed / carPhysics.maxSpeed);
+      drawMinimap();
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    window.onload = () => {
+      animate();
+    };
+  </script>
+</body>
+</html>
